@@ -1177,6 +1177,7 @@ static const CRPCCommand commands[] =
     { "control",            "debug",                  &debug,                  true,  {} },
     { "control",            "getinfo",                &getinfo,                true,  {} }, /* uses wallet if enabled */
     { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {} },
+    { "util",               "ismine",                 &ismine,                 true,  {} },
     { "util",               "validateaddress",        &validateaddress,        true,  {"address"} }, /* uses wallet if enabled */
     { "util",               "createmultisig",         &createmultisig,         true,  {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          true,  {"address","signature","message"} },
