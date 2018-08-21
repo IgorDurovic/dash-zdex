@@ -117,6 +117,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "gettxoutproof", 0, "txids" },
     { "lockunspent", 0, "unlock" },
     { "lockunspent", 1, "transactions" },
+    { "getprivkeys", 1, ""},
     { "importprivkey", 2, "rescan" },
     { "importelectrumwallet", 1, "index" },
     { "importaddress", 2, "rescan" },

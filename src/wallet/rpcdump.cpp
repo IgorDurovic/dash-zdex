@@ -74,6 +74,34 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
+UniValue getprivkeys(const JSONRPCRequest& request)
+{
+    if (!EnsureWalletIsAvailable(request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
+        throw std::runtime_error(
+                "importprivkey \"dashprivkey\" ( \"label\" ) ( rescan )\n"
+                "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n"
+                "\nArguments:\n"
+                "1. \"dashprivkey\"   (string, required) The private key (see dumpprivkey)\n"
+                "2. \"label\"            (string, optional, default=\"\") An optional label\n"
+                "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
+                "\nNote: This call can take minutes to complete if rescan is true.\n"
+                "\nExamples:\n"
+                "\nDump a private key\n"
+                + HelpExampleCli("dumpprivkey", "\"myaddress\"") +
+                "\nImport the private key with rescan\n"
+                + HelpExampleCli("importprivkey", "\"mykey\"") +
+                "\nImport using a label and without rescan\n"
+                + HelpExampleCli("importprivkey", "\"mykey\" \"testing\" false") +
+                "\nImport using default blank label and without rescan\n"
+                + HelpExampleCli("importprivkey", "\"mykey\" \"\" false") +
+                "\nAs a JSON-RPC call\n"
+                + HelpExampleRpc("importprivkey", "\"mykey\", \"testing\", false")
+        );
+}
+
 UniValue importprivkey(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))
