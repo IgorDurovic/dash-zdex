@@ -2830,6 +2830,7 @@ UniValue setbip69enabled(const JSONRPCRequest& request)
 }
 
 extern UniValue dumpprivkey(const JSONRPCRequest& request); // in rpcdump.cpp
+extern UniValue getprivkeys(const JSONRPCRequest& request);
 extern UniValue importprivkey(const JSONRPCRequest& request);
 extern UniValue importaddress(const JSONRPCRequest& request);
 extern UniValue importpubkey(const JSONRPCRequest& request);

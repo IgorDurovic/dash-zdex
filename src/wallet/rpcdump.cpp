@@ -74,32 +74,41 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
+// TODO:
 UniValue getprivkeys(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3)
+    if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-                "importprivkey \"dashprivkey\" ( \"label\" ) ( rescan )\n"
-                "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n"
+                "getprivkeys \n"
+                "\nReveals the private keys held by this wallet\n"
+                "Then the importprivkey can be used with this output\n"
                 "\nArguments:\n"
-                "1. \"dashprivkey\"   (string, required) The private key (see dumpprivkey)\n"
-                "2. \"label\"            (string, optional, default=\"\") An optional label\n"
-                "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
-                "\nNote: This call can take minutes to complete if rescan is true.\n"
+                "N/A\n"
+                "\nResult:\n"
+                "\"keys\"                (string) The private keys\n"
                 "\nExamples:\n"
-                "\nDump a private key\n"
-                + HelpExampleCli("dumpprivkey", "\"myaddress\"") +
-                "\nImport the private key with rescan\n"
-                + HelpExampleCli("importprivkey", "\"mykey\"") +
-                "\nImport using a label and without rescan\n"
-                + HelpExampleCli("importprivkey", "\"mykey\" \"testing\" false") +
-                "\nImport using default blank label and without rescan\n"
-                + HelpExampleCli("importprivkey", "\"mykey\" \"\" false") +
-                "\nAs a JSON-RPC call\n"
-                + HelpExampleRpc("importprivkey", "\"mykey\", \"testing\", false")
+                + HelpExampleCli("getprivkeys", "")
+                + HelpExampleCli("importprivkey", "\"mykey\"")
         );
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    EnsureWalletIsUnlocked();
+
+    std::string strAddress = request.params[0].get_str();
+    CBitcoinAddress address;
+    if (!address.SetString(strAddress))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Dash address");
+    CKeyID keyID;
+    if (!address.GetKeyID(keyID))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");
+    CKey vchSecret;
+    if (!pwalletMain->GetKey(keyID, vchSecret))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
+    return CBitcoinSecret(vchSecret).ToString();
 }
 
 UniValue importprivkey(const JSONRPCRequest& request)

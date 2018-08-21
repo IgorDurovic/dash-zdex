@@ -298,6 +298,46 @@ UniValue spork(const JSONRPCRequest& request)
 
 }
 
+UniValue ismine(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "ismine \"address\"\n"
+                "\nReturn a true if the given address belong to this wallet, and false otherwise.\n"
+                "\nArguments:\n"
+                "1. \"address\"     (string, required) The dash address to validate\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"ismine\" : true|false,        (boolean) If the address is yours or not\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("ismine", "\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"")
+        );
+
+#ifdef ENABLE_WALLET
+        LOCK2(cs_main, pwalletMain ? &pwalletMain->cs_wallet : NULL);
+#else
+    LOCK(cs_main);
+#endif
+
+    CBitcoinAddress address(request.params[0].get_str());
+    bool isValid = address.IsValid();
+
+    UniValue ret(UniValue::VOBJ);
+    if (isValid)
+    {
+        CTxDestination dest = address.Get();
+        std::string currentAddress = address.ToString();
+
+#ifdef ENABLE_WALLET
+        isminetype mine = pwalletMain ? IsMine(*pwalletMain, dest) : ISMINE_NO;
+        ret.push_back((mine & ISMINE_SPENDABLE) ? true : false);
+#endif
+    }
+
+    return ret;
+}
+
 UniValue validateaddress(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
