@@ -323,15 +323,14 @@ UniValue ismine(const JSONRPCRequest& request)
     CBitcoinAddress address(request.params[0].get_str());
     bool isValid = address.IsValid();
 
-    UniValue ret(UniValue::VOBJ);
+    UniValue ret(UniValue::VBOOL);
     if (isValid)
     {
         CTxDestination dest = address.Get();
         std::string currentAddress = address.ToString();
-
 #ifdef ENABLE_WALLET
         isminetype mine = pwalletMain ? IsMine(*pwalletMain, dest) : ISMINE_NO;
-        ret.push_back((mine & ISMINE_SPENDABLE) ? true : false);
+        ret.setBool((mine & ISMINE_SPENDABLE) ? true : false);
 #endif
     }
 
@@ -1245,7 +1244,7 @@ static const CRPCCommand commands[] =
     { "control",            "debug",                  &debug,                  true,  {} },
     { "control",            "getinfo",                &getinfo,                true,  {} }, /* uses wallet if enabled */
     { "control",            "getmemoryinfo",          &getmemoryinfo,          true,  {} },
-    { "util",               "ismine",                 &ismine,                 true,  {} },
+    { "util",               "ismine",                 &ismine,                 true,  {"address"} },
     { "util",               "validateaddress",        &validateaddress,        true,  {"address"} }, /* uses wallet if enabled */
     { "util",               "createmultisig",         &createmultisig,         true,  {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          true,  {"address","signature","message"} },

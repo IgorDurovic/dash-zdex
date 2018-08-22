@@ -405,10 +405,7 @@ UniValue getdynamicfeerate(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    UniValue obj(UniValue::VOBJ);
-    obj.push_back(ValueFromAmount(::minRelayTxFee.GetFeePerK()));
-
-    return obj;
+    return ValueFromAmount(::minRelayTxFee.GetFeePerK());
 }
 
 UniValue getnetworkinfo(const JSONRPCRequest& request)

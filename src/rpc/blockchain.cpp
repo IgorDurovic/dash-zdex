@@ -1227,8 +1227,8 @@ UniValue getheight(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    UniValue obj(UniValue::VOBJ);
-    obj.push_back((int)chainActive.Height());
+    UniValue obj(UniValue::VNUM);
+    obj.setInt(chainActive.Height());
 
     return obj;
 }
@@ -1237,29 +1237,29 @@ UniValue getblockhashfromheight(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-                "getblockhashfromheight [block height]\n"
-                "Returns the block hash of the block at the given height.\n"
+                "getblockhash height\n"
+                "\nReturns hash of block in best-block-chain at height provided.\n"
+                "\nArguments:\n"
+                "1. height         (numeric, required) The height index\n"
                 "\nResult:\n"
-                "{\n"
-                "  \"blockhash\": xxxxxx,         (hash)the block hash at the given height\n"
-                "}\n"
+                "\"hash\"         (string) The block hash\n"
                 "\nExamples:\n"
-                + HelpExampleCli("getblockhashfromheight", "")
-                + HelpExampleRpc("getblockhashfromheight", "")
+                + HelpExampleCli("getblockhash", "1000")
+                + HelpExampleRpc("getblockhash", "1000")
         );
 
     LOCK(cs_main);
 
-    UniValue obj(UniValue::VOBJ);
-    if (request.params[0].isNum()) {
-        int nHeight = request.params[0].get_int();
+    int nHeight = request.params[0].get_int();
+    if (nHeight < 0 || nHeight > chainActive.Height())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
 
-        if (nHeight >= 0 && nHeight <= chainActive.Height()) {
-            obj.push_back(Pair("hash", chainActive[nHeight]->GetBlockHash().GetHex()));
-        }
-    }
+    CBlockIndex* pblockindex = chainActive[nHeight];
 
-    return obj;
+    UniValue ret(UniValue::VOBJ);
+    ret.push_back(Pair("hash", pblockindex->GetBlockHash().GetHex()));
+
+    return ret;
 }
 
 UniValue getblockchaininfo(const JSONRPCRequest& request)
@@ -1637,7 +1637,7 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------  -----------------------  ------ ----------
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
     { "blockchain",         "getheight",              &getheight,              true,  {} },
-    { "blockchain",         "getblockhashfromheight", &getblockhashfromheight, true,  {} },
+    { "blockchain",         "getblockhashfromheight", &getblockhashfromheight, true,  {"height"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
     { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
