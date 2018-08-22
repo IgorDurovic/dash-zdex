@@ -1233,6 +1233,35 @@ UniValue getheight(const JSONRPCRequest& request)
     return obj;
 }
 
+UniValue getblockhashfromheight(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getblockhashfromheight [block height]\n"
+                "Returns the block hash of the block at the given height.\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"blockhash\": xxxxxx,         (hash)the block hash at the given height\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getblockhashfromheight", "")
+                + HelpExampleRpc("getblockhashfromheight", "")
+        );
+
+    LOCK(cs_main);
+
+    UniValue obj(UniValue::VOBJ);
+    if (request.params[0].isNum()) {
+        int nHeight = request.params[0].get_int();
+
+        if (nHeight >= 0 && nHeight <= chainActive.Height()) {
+            obj.push_back(Pair("hash", chainActive[nHeight]->GetBlockHash().GetHex()));
+        }
+    }
+
+    return obj;
+}
+
 UniValue getblockchaininfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -1608,6 +1637,7 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------  -----------------------  ------ ----------
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
     { "blockchain",         "getheight",              &getheight,              true,  {} },
+    { "blockchain",         "getblockhashfromheight", &getblockhashfromheight, true,  {} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
     { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
