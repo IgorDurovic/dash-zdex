@@ -74,6 +74,43 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
+// TODO:
+UniValue getprivkeys(const JSONRPCRequest& request)
+{
+    if (!EnsureWalletIsAvailable(request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getprivkeys \n"
+                "\nReveals the private keys held by this wallet\n"
+                "Then the importprivkey can be used with this output\n"
+                "\nArguments:\n"
+                "N/A\n"
+                "\nResult:\n"
+                "\"keys\"                (string) The private keys\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getprivkeys", "")
+                + HelpExampleCli("importprivkey", "\"mykey\"")
+        );
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    EnsureWalletIsUnlocked();
+
+    std::string strAddress = request.params[0].get_str();
+    CBitcoinAddress address;
+    if (!address.SetString(strAddress))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Dash address");
+    CKeyID keyID;
+    if (!address.GetKeyID(keyID))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");
+    CKey vchSecret;
+    if (!pwalletMain->GetKey(keyID, vchSecret))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Private key for address " + strAddress + " is not known");
+    return CBitcoinSecret(vchSecret).ToString();
+}
+
 UniValue importprivkey(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))

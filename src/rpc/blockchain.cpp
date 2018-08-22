@@ -1210,6 +1210,58 @@ void BIP9SoftForkDescPushBack(UniValue& bip9_softforks, const std::string &name,
         bip9_softforks.push_back(Pair(name, BIP9SoftForkDesc(consensusParams, id)));
 }
 
+UniValue getheight(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+                "getheight\n"
+                "Returns the current height of the blockchain.\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"blocks\": xxxxxx,         (numeric) the current number of blocks processed in the server\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getheight", "")
+                + HelpExampleRpc("getheight", "")
+        );
+
+    LOCK(cs_main);
+
+    UniValue obj(UniValue::VNUM);
+    obj.setInt(chainActive.Height());
+
+    return obj;
+}
+
+UniValue getblockhashfromheight(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getblockhash height\n"
+                "\nReturns hash of block in best-block-chain at height provided.\n"
+                "\nArguments:\n"
+                "1. height         (numeric, required) The height index\n"
+                "\nResult:\n"
+                "\"hash\"         (string) The block hash\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getblockhash", "1000")
+                + HelpExampleRpc("getblockhash", "1000")
+        );
+
+    LOCK(cs_main);
+
+    int nHeight = request.params[0].get_int();
+    if (nHeight < 0 || nHeight > chainActive.Height())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+
+    CBlockIndex* pblockindex = chainActive[nHeight];
+
+    UniValue ret(UniValue::VOBJ);
+    ret.push_back(Pair("hash", pblockindex->GetBlockHash().GetHex()));
+
+    return ret;
+}
+
 UniValue getblockchaininfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -1584,6 +1636,8 @@ static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ ----------
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
+    { "blockchain",         "getheight",              &getheight,              true,  {} },
+    { "blockchain",         "getblockhashfromheight", &getblockhashfromheight, true,  {"height"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
     { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
