@@ -775,6 +775,74 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
     return result;
 }
 
+// TODO: FIGURE OUT THE CORRECT OUTPUT FORMAT
+UniValue getaddressunspent(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getaddressunspent\n"
+                "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n"
+                "\nArguments:\n"
+                "{\n"
+                "  \"addresses\"\n"
+                "    [\n"
+                "      \"address\"  (string) The base58check encoded address\n"
+                "      ,...\n"
+                "    ]\n"
+                "}\n"
+                "\nResult:\n"
+                "[\n"
+                "  {\n"
+                "    \"address\"  (string) The address base58check encoded\n"
+                "    \"txid\"  (string) The output txid\n"
+                "    \"outputIndex\"  (number) The output index\n"
+                "    \"script\"  (string) The script hex encoded\n"
+                "    \"satoshis\"  (number) The number of duffs of the output\n"
+                "    \"height\"  (number) The block height\n"
+                "  }\n"
+                "]\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getaddressutxos", "'{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}'")
+                + HelpExampleRpc("getaddressutxos", "{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}")
+        );
+
+    std::vector<std::pair<uint160, int> > addresses;
+
+    if (!getAddressesFromParams(request.params, addresses)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+    }
+
+    std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > unspentOutputs;
+
+    for (std::vector<std::pair<uint160, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
+        if (!GetAddressUnspent((*it).first, (*it).second, unspentOutputs)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+        }
+    }
+
+    std::sort(unspentOutputs.begin(), unspentOutputs.end(), heightSort);
+
+    UniValue result(UniValue::VARR);
+
+    for (std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> >::const_iterator it=unspentOutputs.begin(); it!=unspentOutputs.end(); it++) {
+        UniValue output(UniValue::VOBJ);
+        std::string address;
+        if (!getAddressFromIndex(it->first.type, it->first.hashBytes, address)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
+        }
+
+        output.push_back(Pair("address", address));
+        output.push_back(Pair("txhash", it->first.txhash.GetHex()));
+        output.push_back(Pair("outputIndex", (int)it->first.index));
+        output.push_back(Pair("script", HexStr(it->second.script.begin(), it->second.script.end())));
+        output.push_back(Pair("satoshis", it->second.satoshis));
+        output.push_back(Pair("height", it->second.blockHeight));
+        result.push_back(output);
+    }
+
+    return result;
+}
+
 UniValue getaddressutxos(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
@@ -1185,7 +1253,8 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getspentinfo",           &getspentinfo,           false, {"json"} },
 
     /* Address index */
-    { "addressindex",       "getaddressmempool",      &getaddressmempool,      true,  {"addresses"}  },
+    { "addressindex",       "getaddressmempool",      &getaddressmempool,      true,  {"addresses"} },
+    { "addressindex",       "getaddressunspent"       &getaddressunspent,      true,  {"addresses"} },
     { "addressindex",       "getaddressutxos",        &getaddressutxos,        false, {"addresses"} },
     { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false, {"addresses"} },
     { "addressindex",       "getaddresstxids",        &getaddresstxids,        false, {"addresses"} },
