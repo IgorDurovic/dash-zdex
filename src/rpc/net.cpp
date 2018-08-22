@@ -390,6 +390,27 @@ static UniValue GetNetworksInfo()
     return networks;
 }
 
+UniValue getdynamicfeerate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+                "getdynamicfeerate\n"
+                "The estimated fee rate of the network.\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"relayfee\": x.xxxxxxxx,                (numeric) minimum relay fee for non-free transactions in " + CURRENCY_UNIT + "/kB\n"
+                + HelpExampleCli("getdynamicfeerate", "")
+                + HelpExampleRpc("getdynamicfeerate", "")
+        );
+
+    LOCK(cs_main);
+
+    UniValue obj(UniValue::VOBJ);
+    obj.push_back(ValueFromAmount(::minRelayTxFee.GetFeePerK()));
+
+    return obj;
+}
+
 UniValue getnetworkinfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -611,6 +632,7 @@ static const CRPCCommand commands[] =
     { "network",            "disconnectnode",         &disconnectnode,         true,  {"address"} },
     { "network",            "getaddednodeinfo",       &getaddednodeinfo,       true,  {"node"} },
     { "network",            "getnettotals",           &getnettotals,           true,  {} },
+    { "network",            "getdynamicfeerate",      &getdynamicfeerate,      true,  {} },
     { "network",            "getnetworkinfo",         &getnetworkinfo,         true,  {} },
     { "network",            "setban",                 &setban,                 true,  {"subnet", "command", "bantime", "absolute"} },
     { "network",            "listbanned",             &listbanned,             true,  {} },

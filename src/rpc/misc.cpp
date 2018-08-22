@@ -1254,7 +1254,7 @@ static const CRPCCommand commands[] =
 
     /* Address index */
     { "addressindex",       "getaddressmempool",      &getaddressmempool,      true,  {"addresses"} },
-    { "addressindex",       "getaddressunspent"       &getaddressunspent,      true,  {"addresses"} },
+    { "addressindex",       "getaddressunspent",       &getaddressunspent,      true,  {"addresses"} },
     { "addressindex",       "getaddressutxos",        &getaddressutxos,        false, {"addresses"} },
     { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false, {"addresses"} },
     { "addressindex",       "getaddresstxids",        &getaddresstxids,        false, {"addresses"} },
