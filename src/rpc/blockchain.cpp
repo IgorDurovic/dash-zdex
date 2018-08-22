@@ -1210,6 +1210,29 @@ void BIP9SoftForkDescPushBack(UniValue& bip9_softforks, const std::string &name,
         bip9_softforks.push_back(Pair(name, BIP9SoftForkDesc(consensusParams, id)));
 }
 
+UniValue getheight(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+                "getheight\n"
+                "Returns the current height of the blockchain.\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"blocks\": xxxxxx,         (numeric) the current number of blocks processed in the server\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getheight", "")
+                + HelpExampleRpc("getheight", "")
+        );
+
+    LOCK(cs_main);
+
+    UniValue obj(UniValue::VOBJ);
+    obj.push_back((int)chainActive.Height());
+
+    return obj;
+}
+
 UniValue getblockchaininfo(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -1584,6 +1607,7 @@ static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         okSafe argNames
   //  --------------------- ------------------------  -----------------------  ------ ----------
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      true,  {} },
+    { "blockchain",         "getheight",              &getheight,              true,  {} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       true,  {} },
     { "blockchain",         "getblockcount",          &getblockcount,          true,  {} },
     { "blockchain",         "getblock",               &getblock,               true,  {"blockhash","verbose"} },
