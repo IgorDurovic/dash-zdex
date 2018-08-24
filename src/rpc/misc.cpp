@@ -1020,24 +1020,45 @@ UniValue getaddressutxostate(const JSONRPCRequest& request)
     for (auto it = addressIndex.begin(); it != addressIndex.end(); it++) {
         int height = it->first.blockHeight;
         uint256 txid = it->first.txhash;
-        int value = it->first.spending;
+        int index = it->first.index;
+
+        COutPoint out(txid, index);
 
         CTransactionRef tx;
         uint256 hashBlock;
         if (!GetTransaction(txid, tx, Params().GetConsensus(), hashBlock, true))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Could not locate transaction"));
 
-        UniValue txRet(UniValue::VOBJ);
-        txRet.push_back(Pair("tx_hash", txid.GetHex()));
-        txRet.push_back(Pair("block_hash", hashBlock.GetHex()));
-        txRet.push_back(Pair("value", it->second));
-        txRet.push_back(Pair("spending", it->first.spending));
-        txRet.push_back(Pair("block_height", height));
+        UniValue txSummary(UniValue::VOBJ);
+        txSummary.push_back(Pair("tx_hash", txid.GetHex()));
+        txSummary.push_back(Pair("block_height", height));
 
-        unspent.push_back(txRet);
+        UniValue inputs(UniValue::VARR);
+        for (auto input: tx->vin) {
+            inputs.push_back(input.prevout.hash.GetHex());
+        }
+
+        txSummary.push_back(Pair("inputs", inputs));
+        tx_summary.push_back(txSummary);
+
+        Coin coin;
+        LOCK(mempool.cs);
+        CCoinsViewMemPool view(pcoinsTip, mempool);
+        if (view.GetCoin(out, coin) && !mempool.isSpent(out)) {
+            UniValue txRet(UniValue::VOBJ);
+            txRet.push_back(Pair("tx_hash", txid.GetHex()));
+            txRet.push_back(Pair("index", index));
+            txRet.push_back(Pair("block_hash", hashBlock.GetHex()));
+            txRet.push_back(Pair("value", it->second));
+            txRet.push_back(Pair("spending", false));
+            txRet.push_back(Pair("block_height", height));
+
+            unspent.push_back(txRet);
+        }
     }
 
     result.push_back(Pair("unspent", unspent));
+    result.push_back(Pair("txsummary", tx_summary));
     result.push_back(Pair("chain_height", end));
 
     return result;
