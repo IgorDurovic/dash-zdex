@@ -775,6 +775,8 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
 }
 
 // TODO: FIGURE OUT THE CORRECT OUTPUT FORMAT
+
+
 UniValue getaddressunspent(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
@@ -905,6 +907,129 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
         output.push_back(Pair("height", it->second.blockHeight));
         result.push_back(output);
     }
+
+    return result;
+}
+
+UniValue getaddressutxostate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getaddressutxostate\n"
+                "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n"
+                "\nArguments:\n"
+                "{\n"
+                "  \"addresses\"\n"
+                "    [\n"
+                "      \"address\"  (string) The base58check encoded address\n"
+                "      ,...\n"
+                "    ]\n"
+                "}\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"unspent\":"
+                "  [\n"
+                "    {\n"
+                "      \"tx_hash\"  (string) The output txid\n"
+                "      \"tx_pos\"  (number) The output index\n"
+                "      \"value\"  (number) The number of duffs of the output\n"
+                "      \"height\"  (number) The block height\n"
+                "      \"block_hash\"  (number) The block height\n"
+                "    }\n"
+                "  ]\n"
+                "  \"txsummaries\":"
+                "  [\n"
+                "    {\n"
+                "      \"tx_hash\"  (string) The output txid\n"
+                "      "
+                "      \"height\"  (number) The block height\n"
+                "    }\n"
+                "  ]\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getaddressutxostate", "'{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}'")
+                + HelpExampleRpc("getaddressutxostate", "{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}")
+        );
+
+    std::vector<std::pair<uint160, int> > addresses;
+
+    if (!getAddressesFromParams(request.params, addresses)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+    }
+
+    LOCK(cs_main);
+
+    int64_t nTimeDay = 60 * 60 * 24;
+
+    // assign the starting block as the one that was mined approximately 3 days ago
+    int start = chainActive.Height() - (3 * nTimeDay / Params().GetConsensus().nPowTargetSpacing);
+    int end = chainActive.Height();
+
+    std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
+
+    for (auto it = addresses.begin(); it != addresses.end(); it++) {
+        if (start > 0 && end > 0) {
+            if (!GetAddressIndex(it->first, it->second, addressIndex, start, end)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+            }
+        } else {
+            if (!GetAddressIndex(it->first, it->second, addressIndex)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+            }
+        }
+    }
+
+    std::set<uint256> txids;
+    UniValue result(UniValue::VOBJ);
+    UniValue unspent(UniValue::VARR);
+    UniValue tx_summary(UniValue::VARR);
+
+    for (auto it = addressIndex.begin(); it != addressIndex.end(); it++) {
+        if (it->second <= 0)
+            continue;
+
+        int height = it->first.blockHeight;
+        uint256 txid = it->first.txhash;
+        int index = it->first.index;
+
+        COutPoint out(txid, index);
+
+        CTransactionRef tx;
+        uint256 hashBlock;
+        if (!GetTransaction(txid, tx, Params().GetConsensus(), hashBlock, true))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Could not locate transaction"));
+
+        UniValue txSummary(UniValue::VOBJ);
+        txSummary.push_back(Pair("tx_hash", txid.GetHex()));
+        txSummary.push_back(Pair("block_height", height));
+
+        UniValue inputs(UniValue::VARR);
+        for (auto input: tx->vin) {
+            inputs.push_back(input.prevout.hash.GetHex());
+        }
+
+        txSummary.push_back(Pair("inputs", inputs));
+        tx_summary.push_back(txSummary);
+
+        Coin coin;
+        LOCK(mempool.cs);
+        CCoinsViewMemPool view(pcoinsTip, mempool);
+        if (view.GetCoin(out, coin) && !mempool.isSpent(out)) {
+            UniValue txRet(UniValue::VOBJ);
+            txRet.push_back(Pair("tx_hash", txid.GetHex()));
+            txRet.push_back(Pair("index", index));
+            txRet.push_back(Pair("block_hash", hashBlock.GetHex()));
+            txRet.push_back(Pair("value", it->second));
+            txRet.push_back(Pair("spending", false));
+            txRet.push_back(Pair("block_height", height));
+
+            unspent.push_back(txRet);
+        }
+    }
+
+    result.push_back(Pair("unspent", unspent));
+    result.push_back(Pair("txsummaries", tx_summary));
+    result.push_back(Pair("chain_height", end));
 
     return result;
 }
@@ -1253,8 +1378,9 @@ static const CRPCCommand commands[] =
 
     /* Address index */
     { "addressindex",       "getaddressmempool",      &getaddressmempool,      true,  {"addresses"} },
-    { "addressindex",       "getaddressunspent",       &getaddressunspent,      true,  {"addresses"} },
+    { "addressindex",       "getaddressunspent",      &getaddressunspent,      false,  {"addresses"} },
     { "addressindex",       "getaddressutxos",        &getaddressutxos,        false, {"addresses"} },
+    { "addressindex",       "getaddressutxostate",    &getaddressutxostate,    false, {"addresses"} },
     { "addressindex",       "getaddressdeltas",       &getaddressdeltas,       false, {"addresses"} },
     { "addressindex",       "getaddresstxids",        &getaddresstxids,        false, {"addresses"} },
     { "addressindex",       "getaddressbalance",      &getaddressbalance,      false, {"addresses"} },
