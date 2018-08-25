@@ -911,39 +911,6 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
     return result;
 }
 
-/*
- *
- *  def getaddressutxostate(self, address):
-        """For a given address, returns its UTXO list as well as former UTXOs
-        that have since been spent."""
-        results = {}
-        sh = bitcoin.address_to_scripthash(address)
-        unspent = self.network.listunspent_for_scripthash(sh)
-        for output in unspent:
-            if "height" in output:
-                output['block_hash'] = self.network.get_block_hash(output['height'])
-        results['unspent'] = unspent
-
-        spent = []
-        history = self.network.get_history_for_scripthash(sh)
-        for transaction in history:
-            if "tx_hash" in transaction:
-                raw = self.network.get_transaction(transaction['tx_hash'])
-                if raw:
-                    inputs_flag = False
-                    tx = Transaction(raw).deserialize(True)
-                    transaction['inputs'] = []
-                    for tx_input in tx['inputs']:
-                        transaction['inputs'].append(tx_input['prevout_hash'])
-                        inputs_flag = True
-                    if inputs_flag:
-                        spent.append(transaction)
-
-        results['tx_summaries'] = spent
-        height = self.network.get_server_height()
-        results['chain_height'] = height
-        return results
- */
 UniValue getaddressutxostate(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
@@ -1018,6 +985,9 @@ UniValue getaddressutxostate(const JSONRPCRequest& request)
     UniValue tx_summary(UniValue::VARR);
 
     for (auto it = addressIndex.begin(); it != addressIndex.end(); it++) {
+        if (it->second <= 0)
+            continue;
+
         int height = it->first.blockHeight;
         uint256 txid = it->first.txhash;
         int index = it->first.index;
@@ -1058,7 +1028,7 @@ UniValue getaddressutxostate(const JSONRPCRequest& request)
     }
 
     result.push_back(Pair("unspent", unspent));
-    result.push_back(Pair("txsummary", tx_summary));
+    result.push_back(Pair("txsummaries", tx_summary));
     result.push_back(Pair("chain_height", end));
 
     return result;

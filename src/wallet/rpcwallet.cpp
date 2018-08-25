@@ -1479,6 +1479,137 @@ void AcentryToJSON(const CAccountingEntry& acentry, const std::string& strAccoun
     }
 }
 
+/*UniValue getaddressutxostate(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getaddressutxostate\n"
+                "\nReturns all unspent outputs for an address (requires addressindex to be enabled).\n"
+                "\nArguments:\n"
+                "{\n"
+                "  \"addresses\"\n"
+                "    [\n"
+                "      \"address\"  (string) The base58check encoded address\n"
+                "      ,...\n"
+                "    ]\n"
+                "}\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"unspent\":"
+                "  [\n"
+                "    {\n"
+                "      \"tx_hash\"  (string) The output txid\n"
+                "      \"tx_pos\"  (number) The output index\n"
+                "      \"value\"  (number) The number of duffs of the output\n"
+                "      \"height\"  (number) The block height\n"
+                "      \"block_hash\"  (number) The block height\n"
+                "    }\n"
+                "  ]\n"
+                "  \"txsummaries\":"
+                "  [\n"
+                "    {\n"
+                "      \"tx_hash\"  (string) The output txid\n"
+                "      "
+                "      \"height\"  (number) The block height\n"
+                "    }\n"
+                "  ]\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getaddressutxostate", "'{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}'")
+                + HelpExampleRpc("getaddressutxostate", "{\"addresses\": [\"XwnLY9Tf7Zsef8gMGL2fhWA9ZmMjt4KPwg\"]}")
+        );
+
+    if (!request.params[0].isStr()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The parameter must be a string address");
+    }
+
+    auto strAddress = request.params[0].get_str();
+    CBitcoinAddress address(request.params[0].get_str());
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    isminefilter filter = ISMINE_ALL;
+
+    UniValue ret(UniValue::VARR);
+
+    const CWallet::TxItems & txOrdered = pwalletMain->wtxOrdered;
+    int64_t nTimeDay = 60 * 60 * 24;
+
+    // assign the starting block as the one that was mined approximately 3 days ago
+    int start = chainActive.Height() - (3 * nTimeDay / Params().GetConsensus().nPowTargetSpacing);
+    int end = chainActive.Height();
+
+    UniValue result(UniValue::VOBJ);
+    UniValue unspent(UniValue::VARR);
+    UniValue tx_summaries(UniValue::VARR);
+
+    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it)
+    {
+        CWalletTx *const pwtx = it->second.first;
+        if (pwtx == 0)
+            continue;
+
+        if (pwtx->GetDepthInMainChain() < start)
+            continue;
+
+        CAmount nFee;
+        std::string strSentAccount;
+        std::list<COutputEntry> listReceived;
+        std::list<COutputEntry> listSent;
+
+        UniValue tx_summary(UniValue::VOBJ);
+        tx_summary.push_back(Pair("tx_hash", txid.GetHex()));
+        tx_summary.push_back(Pair("block_height", nHeight));
+
+        UniValue inputs(UniValue::VARR);
+        pwtx->GetAmounts(listReceived, listSent, nFee, strSentAccount, filter);
+        for(auto r: listReceived) {
+            UniValue entry(UniValue::VOBJ);
+            entry.push_back(Pair("amount", ValueFromAmount(r.amount)));
+
+            if (pwalletMain->mapAddressBook.count(r.destination))
+                entry.push_back(Pair("label", account));
+            entry.push_back(Pair("vout", r.vout));
+            if (fLong)
+                WalletTxToJSON(wtx, entry);
+
+            ret.push_back(entry);
+        }
+
+        int nHeight = mapBlockIndex[pwtx->hashBlock]->nHeight;
+        auto txid = pwtx->tx->GetHash();
+        COutPoint out(txid, pwtx->nIndex);
+
+        for (auto input: pwtx->tx->vin) {
+            inputs.push_back(input.prevout.hash.GetHex());
+        }
+
+        tx_summary.push_back(Pair("inputs", inputs));
+        tx_summaries.push_back(tx_summary);
+
+        Coin coin;
+        LOCK(mempool.cs);
+        CCoinsViewMemPool view(pcoinsTip, mempool);
+        if (view.GetCoin(out, coin) && !mempool.isSpent(out)) {
+            UniValue txRet(UniValue::VOBJ);
+            txRet.push_back(Pair("tx_hash", txid.GetHex()));
+            txRet.push_back(Pair("index", index));
+            txRet.push_back(Pair("block_hash", hashBlock.GetHex()));
+            txRet.push_back(Pair("value", out.));
+            txRet.push_back(Pair("spending", false));
+            txRet.push_back(Pair("block_height", height));
+
+            unspent.push_back(txRet);
+        }
+    }
+
+    result.push_back(Pair("unspent", unspent));
+    result.push_back(Pair("txsummary", tx_summaries));
+    result.push_back(Pair("chain_height", end));
+
+    return result;
+}*/
+
 UniValue listtransactions(const JSONRPCRequest& request)
 {
     if (!EnsureWalletIsAvailable(request.fHelp))
